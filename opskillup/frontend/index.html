@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+  <title>Opskillsup | Candidate Portal</title>
+
+  <style>
+
+    body { font-family: Arial; background: linear-gradient(120deg,#0f2027,#203a43,#2c5364); color:white; text-align:center; margin:0; padding-bottom:60px; }
+
+    h1 { margin-top:30px; }
+
+    .card { background:white; color:black; width:400px; margin:40px auto; padding:20px; border-radius:10px; box-shadow:0 10px 25px rgba(0,0,0,0.3); }
+
+    input, button, select { width:90%; padding:10px; margin:8px; border-radius:5px; border:1px solid #ccc; font-size:14px; }
+
+    button { background:#2c5364; color:white; border:none; cursor:pointer; font-weight:bold; }
+
+    button:hover { background:#203a43; }
+
+    footer { position:fixed; bottom:10px; right:15px; font-size:12px; color:#ddd; opacity:0.85; }
+
+  </style>
+
+</head>
+
+<body>
+
+
+
+<h1>Opskillsup</h1>
+
+<p>Candidate Registration Portal</p>
+
+
+
+<div class="card" id="auth">
+
+  <h3>Register / Login</h3>
+
+  <input id="email" placeholder="Email">
+
+  <input id="password" type="password" placeholder="Password">
+
+  <button onclick="register()">Register</button>
+
+  <button onclick="login()">Login</button>
+
+</div>
+
+
+
+<div class="card" id="portal" style="display:none;">
+
+  <div style="text-align:right;">
+
+    <button onclick="logout()" style="width:30%; margin:0 0 10px 0;">Logout</button>
+
+  </div>
+
+
+
+  <h3>Register Candidate</h3>
+
+  <input id="name" placeholder="Candidate Name">
+
+  <input id="course" placeholder="Course">
+
+  <select id="gender">
+
+    <option value="">Select Gender</option>
+
+    <option value="Male">Male</option>
+
+    <option value="Female">Female</option>
+
+    <option value="Other">Other</option>
+
+  </select>
+
+  <button id="addBtn">Add Candidate</button>
+
+
+
+  <h3>Registered Candidates</h3>
+
+  <select id="list" size="5" style="width:95%;"></select>
+
+</div>
+
+
+
+<footer>
+
+  © 2026 Opskillsup | Developed by Shiv
+
+</footer>
+
+
+
+<script>
+
+let user = "";
+
+const API = "http://192.168.164.180:3000/api"; // WSL IP
+
+
+
+// REGISTER
+
+function register(){
+
+  fetch(`${API}/register`, {
+
+    method:"POST",
+
+    headers: {"Content-Type":"application/json"},
+
+    body: JSON.stringify({ email: email.value, password: password.value })
+
+  })
+
+  .then(r => r.json())
+
+  .then(() => login())
+
+  .catch(e => alert("Registration failed: " + e));
+
+}
+
+
+
+// LOGIN
+
+function login(){
+
+  fetch(`${API}/login`, {
+
+    method:"POST",
+
+    headers: {"Content-Type":"application/json"},
+
+    body: JSON.stringify({ email: email.value, password: password.value })
+
+  })
+
+  .then(r => r.json())
+
+  .then(d => {
+
+    if(!d.token){ alert("Login failed"); return; }
+
+    user = email.value; // important for POST
+
+    auth.style.display = "none";
+
+    portal.style.display = "block";
+
+    load();
+
+  })
+
+  .catch(e => alert("Login failed: " + e));
+
+}
+
+
+
+// LOGOUT
+
+function logout(){
+
+  user = "";
+
+  portal.style.display="none";
+
+  auth.style.display="block";
+
+  email.value=""; password.value="";
+
+  name.value=""; course.value=""; gender.value="";
+
+  list.innerHTML="";
+
+}
+
+
+
+// ADD CANDIDATE
+
+document.getElementById("addBtn").addEventListener("click", function(){
+
+  const candidateName = name.value.trim();
+
+  const candidateCourse = course.value.trim();
+
+  const candidateGender = gender.value;
+
+
+
+  if(!candidateName || !candidateCourse || !candidateGender){
+
+    alert("All fields required!");
+
+    return;
+
+  }
+
+
+
+  fetch(`${API}/students`, {
+
+    method:"POST",
+
+    headers: {"Content-Type":"application/json"},
+
+    body: JSON.stringify({
+
+      email: user,
+
+      name: candidateName,
+
+      course: candidateCourse,
+
+      gender: candidateGender
+
+    })
+
+  })
+
+  .then(r => r.json())
+
+  .then(() => {
+
+    name.value=""; course.value=""; gender.value="";
+
+    load(); // refresh dropdown immediately
+
+  })
+
+  .catch(e => alert("Failed to add candidate: " + e));
+
+});
+
+
+
+// LOAD CANDIDATES
+
+function load(){
+
+  fetch(`${API}/students/${user}`)
+
+    .then(r => r.json())
+
+    .then(data => {
+
+      list.innerHTML = "";
+
+      data.forEach(s => {
+
+        const option = document.createElement("option");
+
+        option.text = `${s.name} - ${s.course} - ${s.gender}`;
+
+        list.add(option);
+
+      });
+
+    })
+
+    .catch(e => alert("Failed to load candidates: " + e));
+
+}
+
+</script>
+
+
+
+</body>
+
+</html>
+
